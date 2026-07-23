@@ -2,7 +2,7 @@
 
 Refer to [README.md](./README.md) for human-facing project details.
 
-This document provides a detailed technical overview of a shell script collection to back `libvirtd` Virtual Machines up and syncronize backups across cluster members.
+This document provides a detailed technical overview of a shell script collection to back `libvirt` Virtual Machines up and syncronize backups across cluster members.
 
 ## 1. Architecture & Structure
 
