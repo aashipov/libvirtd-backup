@@ -1,4 +1,4 @@
-# Backup libvirtd VMs
+# libvirt VMs live backup
 
 ## Prerequisites
 
@@ -11,11 +11,19 @@
 
 With unprivileged user at each host:
 
-- pick archive or clone```git clone https://github.com/aashipov/libvirtd-backup.git``` or pull recent version ```git pull -r```
-- make an .env file ```cp .env.template .env```, adjust variables (Per-host variables, especially)
+- pick archive or clone`git clone https://github.com/aashipov/libvirtd-backup.git` or pull recent version `git pull -r`
+- make an .env file `cp .env.template .env`, adjust variables (Per-host variables, especially)
 - launch backups `./bc.sh`
 - kill backup jobs `pkill -f bc.sh ; ./bc-kill.sh`
 - replicate backups and clean obsoletes `rc.sh`
+
+## Technology choice
+
+[Tools like](https://github.com/abbbi/virtnbdbackup) may not fit an 'air-gapped' / 'airtight' environment / 'secure' linux distros
+
+GNU Coreutils, sed, grep, environment file and shell script 'glue' might be an alternative to the above
+
+
 
 ## License
 
