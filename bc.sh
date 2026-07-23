@@ -16,9 +16,8 @@
 # SEE ALSO:
 #   https://libvirt.org/kbase/live_full_disk_backup.html
 #   ./lib.sh
+#   ./bc-kill.sh
 #
-# NOTE:
-#   `virsh --connect qemu:///system domjobabort ${VM_NAME}` aborts backup task for a given ${VM_NAME}
 
 # ------------------------------------------------------------
 #  Main function to prevent occasional environment pollution

@@ -46,6 +46,7 @@ environment() {
 create_backup_dir() {
     # Creates a local backup dir if missing
     mkdir -p ${BACKUP_DIR}
+    mkdir -p ${ANOTHER_SERVER_ANOTHER_BACKUP_DIR}
 }
 
 create_current_backup_dir() {
@@ -147,4 +148,26 @@ kill_backup_jobs() {
         fi
     done
     log "Kill backup jobs finish"
+}
+
+# ------------------------------------------------------------
+#  Removes obsolete backups
+# ------------------------------------------------------------
+clean_obsolete_backups() {
+    if [ -d ${ANOTHER_SERVER_ANOTHER_BACKUP_DIR} ]
+    then
+        find ${ANOTHER_SERVER_ANOTHER_BACKUP_DIR}/*/ -mtime +${DAYS_TO_KEEP_BACKUPS} -exec rm -rf {} \;
+    fi
+
+    if [ -d ${BACKUP_DIR} ]
+    then
+        find ${BACKUP_DIR}/*/ -mtime ${DAYS_TO_KEEP_BACKUPS} -exec rm -rf {} \;
+    fi
+}
+
+# ------------------------------------------------------------
+#  Pushes backups to remote server
+# ------------------------------------------------------------
+push_backups_to_another_server() {
+    rsync -avzW --progress --recursive ${BACKUP_DIR} ${ANOTHER_SERVER_USERNAME}@${ANOTHER_SERVER_IP}:${ANOTHER_SERVER_ANOTHER_BACKUP_DIR}
 }
