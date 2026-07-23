@@ -41,6 +41,7 @@ environment() {
     # . for bash, zsh, ksh, (d)ash. source for (t)csh
     . ${ENV_FILE}
     mkdir -p ${BACKUP_DIR}
+    block_root
 }
 
 create_backup_dir() {
@@ -170,4 +171,28 @@ clean_obsolete_backups() {
 # ------------------------------------------------------------
 push_backups_to_another_server() {
     rsync -avzW --progress --recursive ${BACKUP_DIR} ${ANOTHER_SERVER_USERNAME}@${ANOTHER_SERVER_IP}:${ANOTHER_SERVER_ANOTHER_BACKUP_DIR}
+}
+
+# ------------------------------------------------------------
+#  Security
+# ------------------------------------------------------------
+die_privileged() {
+    die "Error: This script must not be run as root or with sudo (mass file/dir removal)."
+}
+
+# ------------------------------------------------------------
+#  Block sudo
+# ------------------------------------------------------------
+sudo() {
+    die_privileged
+}
+
+# ------------------------------------------------------------
+#  Block privileged execution
+# ------------------------------------------------------------
+block_root() {
+    if [ "${EUID}" -eq 0 ] || [ `id -u` -eq 0 ]
+    then
+        die_privileged
+    fi
 }
