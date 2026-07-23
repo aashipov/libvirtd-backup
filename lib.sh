@@ -113,3 +113,38 @@ backup_running_vm() {
     done
     log "${VM_NAME} backup finish"
 }
+
+# ------------------------------------------------------------
+#  Back the VMs up
+# ------------------------------------------------------------
+backup_vms() {
+    log "Backup start"
+    for VM_NAME_TO_BACK_UP in ${VM_NAMES_TO_BACK_UP}
+    do
+        if virsh --connect qemu:///system domstate ${VM_NAME_TO_BACK_UP} | grep -q "running"
+        then
+           backup_running_vm ${VM_NAME_TO_BACK_UP}
+        else
+            log "${VM_NAME_TO_BACK_UP} is not running, skipping"
+        fi
+    done
+    log "Backup finish"
+}
+
+# ------------------------------------------------------------
+#  Kill the the backup jobs
+# ------------------------------------------------------------
+kill_backup_jobs() {
+    log "Kill backup jobs start"
+    for VM_NAME_TO_BACK_UP in ${VM_NAMES_TO_BACK_UP}
+    do
+        if virsh --connect qemu:///system domstate ${VM_NAME_TO_BACK_UP} | grep -q "running"
+        then
+           virsh --connect qemu:///system domjobabort ${VM_NAME_TO_BACK_UP}
+           log "${VM_NAME_TO_BACK_UP} backup job killed"
+        else
+            log "${VM_NAME_TO_BACK_UP} is not running, skipping"
+        fi
+    done
+    log "Kill backup jobs finish"
+}

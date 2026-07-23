@@ -35,7 +35,7 @@ closure() {
         exit 1
     fi
     . ${_LIB_SH_FILE}
-    
+
     # Do the job
     environment
     create_backup_dir # at this point log file must be available
@@ -46,19 +46,9 @@ closure() {
     check_running
     create_current_backup_dir
 
-    log "Backup start"
     create_running
-    for VM_NAME_TO_BACK_UP in ${VM_NAMES_TO_BACK_UP}
-    do
-        if virsh --connect qemu:///system domstate ${VM_NAME_TO_BACK_UP} | grep -q "running"
-        then
-           backup_running_vm ${VM_NAME_TO_BACK_UP}
-        else
-            log "${VM_NAME_TO_BACK_UP} is not running, skipping"
-        fi
-    done
+    backup_vms
     rm_running
-    log "Backup finish"
 }
 
 closure
