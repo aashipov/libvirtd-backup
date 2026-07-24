@@ -76,6 +76,9 @@ rm_running() {
     rm ${RUNNING_FILE}
 }
 
+# ------------------------------------------------------------
+#  Pipe (|) separated VM disk list
+# ------------------------------------------------------------
 get_vm_disk_names_and_absolute_paths() {
     # Extract disk name | absolute path to disk file
     # ${VM_NAME} must be set in the calling function
@@ -90,7 +93,7 @@ get_vm_disk_names_and_absolute_paths() {
 backup_vm() {
     # Exports VM configuration (XML) and copies disks
     local VM_NAME=${1}
-    printf "Processing ${VM_NAME}\n"
+    log "${VM_NAME} backup start"
     
     # Per-VM dir in the ${CURRENT_BACKUP_DIR}
     local VM_BACKUP_DIR=${CURRENT_BACKUP_DIR}/${VM_NAME}
@@ -128,7 +131,6 @@ backup_vm() {
         local BACKUP_TASK_FILE=${VM_BACKUP_DIR}/${VM_NAME}-backup-job-descriptor.xml
         printf "${BACKUP_JOB_DESCRIPTOR_CONTENT}\n" > ${BACKUP_TASK_FILE}
         # launch backup
-        log "${VM_NAME} backup start"
         virsh backup-begin ${VM_NAME} --backupxml ${BACKUP_TASK_FILE} ||
                 die "Failed to start backup for ${VM_NAME}"
 
