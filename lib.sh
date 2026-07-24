@@ -83,8 +83,8 @@ backup_running_vm() {
     # Exports VM configuration (XML) and copies disks
     local VM_NAME=${1}
     # Dump VM config
-    virsh --connect qemu:///system dumpxml ${VM_NAME} > ${CURRENT_BACKUP_DIR}/${VM_NAME}.xml || die "Failed to dump an XML config for ${VM_NAME}"
-    local DOMBLKLIST=`virsh --connect qemu:///system domblklist ${VM_NAME} --details | grep disk || die "Could not parse disk list for ${VM_NAME}" `
+    virsh dumpxml ${VM_NAME} > ${CURRENT_BACKUP_DIR}/${VM_NAME}.xml || die "Failed to dump an XML config for ${VM_NAME}"
+    local DOMBLKLIST=`virsh domblklist ${VM_NAME} --details | grep disk || die "Could not parse disk list for ${VM_NAME}" `
 
     local DISK_NAMES=`printf "${DOMBLKLIST}\n" | tr -s ' ' | cut -d ' ' -f 4 | tr '\n' ' ' | sed 's/[[:space:]]*$//'`
 
@@ -102,12 +102,12 @@ backup_running_vm() {
 
     # launch
     log "${VM_NAME} backup start"
-    virsh --connect qemu:///system backup-begin ${VM_NAME} --backupxml ${BACKUP_TASK_FILE} ||
+    virsh backup-begin ${VM_NAME} --backupxml ${BACKUP_TASK_FILE} ||
             die "Failed to start backup for ${VM_NAME}"
 
     # wait for backup completion
     while :; do
-        if virsh --connect qemu:///system domjobinfo ${VM_NAME} | grep -q "None"
+        if virsh domjobinfo ${VM_NAME} | grep -q "None"
         then
             break
         fi
@@ -123,7 +123,7 @@ backup_vms() {
     log "Backup start"
     for VM_NAME_TO_BACK_UP in ${VM_NAMES_TO_BACK_UP}
     do
-        if virsh --connect qemu:///system domstate ${VM_NAME_TO_BACK_UP} | grep -q "running"
+        if virsh domstate ${VM_NAME_TO_BACK_UP} | grep -q "running"
         then
            backup_running_vm ${VM_NAME_TO_BACK_UP}
         else
@@ -140,9 +140,9 @@ kill_backup_jobs() {
     log "Kill backup jobs start"
     for VM_NAME_TO_BACK_UP in ${VM_NAMES_TO_BACK_UP}
     do
-        if virsh --connect qemu:///system domstate ${VM_NAME_TO_BACK_UP} | grep -q "running"
+        if virsh domstate ${VM_NAME_TO_BACK_UP} | grep -q "running"
         then
-           virsh --connect qemu:///system domjobabort ${VM_NAME_TO_BACK_UP}
+           virsh domjobabort ${VM_NAME_TO_BACK_UP}
            log "${VM_NAME_TO_BACK_UP} backup job killed"
         else
             log "${VM_NAME_TO_BACK_UP} is not running, skipping"
