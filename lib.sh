@@ -94,11 +94,11 @@ backup_vm() {
     # Exports VM configuration (XML) and copies disks
     local VM_NAME=${1}
     log "${VM_NAME} backup start"
-    
+
     # Per-VM dir in the ${CURRENT_BACKUP_DIR}
     local VM_BACKUP_DIR=${CURRENT_BACKUP_DIR}/${VM_NAME}
     mkdir -p ${VM_BACKUP_DIR}
-    
+
     # Collect VM disk file paths to PSV file
     local VM_DISKS_FILE=${VM_BACKUP_DIR}/disks.psv
     get_vm_disk_names_and_absolute_paths ${VM_NAME} > ${VM_DISKS_FILE}
@@ -120,7 +120,8 @@ backup_vm() {
         else
             # copy offline VM file
             # virt-sparsify --compress ${DISK_FILE_ABSOLUTE_PATH} ${TARGET_DISK_FILE_ABSOLUTE_PATH}-virt-sparsify
-            qemu-img convert -O qcow2 -c ${DISK_FILE_ABSOLUTE_PATH} ${TARGET_DISK_FILE_ABSOLUTE_PATH} || die "Copy of ${DISK_FILE_ABSOLUTE_PATH} ${TARGET_DISK_FILE_ABSOLUTE_PATH} failed"
+            #qemu-img convert -O qcow2 -c ${DISK_FILE_ABSOLUTE_PATH} ${TARGET_DISK_FILE_ABSOLUTE_PATH} || die "Copy of ${DISK_FILE_ABSOLUTE_PATH} ${TARGET_DISK_FILE_ABSOLUTE_PATH} failed"
+            cp ${DISK_FILE_ABSOLUTE_PATH} ${VM_BACKUP_DIR}/
         fi
     done < "${VM_DISKS_FILE}"
     BACKUP_JOB_DESCRIPTOR_CONTENT="${BACKUP_JOB_DESCRIPTOR_CONTENT}    </disks>\n</domainbackup>"
