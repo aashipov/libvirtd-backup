@@ -7,6 +7,18 @@
 - modern POSIX‑compliant shell
 - unprivileged user with `virsh` clearance (as per Distro manual)
 
+## Setup
+
+With VMs present on the host `virsh list --all` returns empty list, check `virsh --connect qemu:///system list --all`
+
+Configure on per-host (uncomment `uri_default=uri_default = "qemu:///system"` in `/etc/libvirt/libvirt.conf`) or per-user basis:
+
+```shell
+cat << 'EOF' | tee -a ${HOME}/.config/libvirt/libvirt.conf
+uri_default = "qemu:///system"
+EOF
+```
+
 ## How-tos
 
 With unprivileged user at each host:
@@ -21,11 +33,11 @@ With unprivileged user at each host:
 
 [Official manual](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/8/html/configuring_and_managing_virtualization/backing-up-and-recovering-virtual-machines_configuring-and-managing-virtualization)
 
-[Tools like](https://github.com/abbbi/virtnbdbackup) may not fit an 'air-gapped' / 'airtight' environment / 'secure' linux distros
+[Tools like](https://github.com/abbbi/virtnbdbackup) may not fit an 'air-gapped' / 'airtight' environment / 'secure' linux distros, output disk file is neither raw nor qcow2
 
-GNU Coreutils, sed, grep, environment file and shell script 'glue' might be an alternative to the above
+GNU Coreutils, sed, grep, environment file and shell script 'glue' might be a simpler alternative to the above
 
-Live/online backup may produce inconsistent data across VMs which depend on each other. 
+Live/online backup may produce inconsistent data across VMs which depend on each other.
 
 Logical Volume Manager (LVM) is considered slower than traditional partitions. Virtual disks must be attached to VM as virtio / writeback cache mode
 
