@@ -222,3 +222,15 @@ block_root() {
         die_privileged
     fi
 }
+
+# ------------------------------------------------------------
+#  Lint against popular Shell/command-line interpreters, special case of `sh` included
+# ------------------------------------------------------------
+lint_shell_script() {
+    local SHELLS_TO_CHECK_AGAINST="zsh ksh bash dash sh"
+    for shell in ${SHELLS_TO_CHECK_AGAINST}
+    do
+        echo "Testing ${shell}"
+        ${shell} -n "$@"
+    done
+}
