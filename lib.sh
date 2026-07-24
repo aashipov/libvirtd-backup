@@ -76,43 +76,71 @@ rm_running() {
     rm ${RUNNING_FILE}
 }
 
+get_vm_disk_names_and_absolute_paths() {
+    # Extract disk name | absolute path to disk file
+    # ${VM_NAME} must be set in the calling function
+    local DOMBLKLIST=`virsh domblklist --details ${VM_NAME} | grep disk` || die "Could not parse disk list for ${VM_NAME}"
+    local DISK_FILES=`printf "${DOMBLKLIST}\n" | tr -s ' ' | cut -d ' ' -f 4,5 | tr ' ' '|'`
+    printf "${DISK_FILES}\n"
+}
+
 # ------------------------------------------------------------
 #  Back the running VM up
 # ------------------------------------------------------------
-backup_running_vm() {
+backup_vm() {
     # Exports VM configuration (XML) and copies disks
     local VM_NAME=${1}
+    printf "Processing ${VM_NAME}\n"
+    
+    # Per-VM dir in the ${CURRENT_BACKUP_DIR}
+    local VM_BACKUP_DIR=${CURRENT_BACKUP_DIR}/${VM_NAME}
+    mkdir -p ${VM_BACKUP_DIR}
+    
+    # Collect VM disk file paths to PSV file
+    local VM_DISKS_FILE=${VM_BACKUP_DIR}/disks.psv
+    get_vm_disk_names_and_absolute_paths ${VM_NAME} > ${VM_DISKS_FILE}
+
     # Dump VM config
-    virsh dumpxml ${VM_NAME} > ${CURRENT_BACKUP_DIR}/${VM_NAME}.xml || die "Failed to dump an XML config for ${VM_NAME}"
-    local DOMBLKLIST=`virsh domblklist ${VM_NAME} --details | grep disk || die "Could not parse disk list for ${VM_NAME}" `
+    virsh dumpxml ${VM_NAME} > ${VM_BACKUP_DIR}/${VM_NAME}.xml || die "Failed to dump an XML config for ${VM_NAME}"
 
-    local DISK_NAMES=`printf "${DOMBLKLIST}\n" | tr -s ' ' | cut -d ' ' -f 4 | tr '\n' ' ' | sed 's/[[:space:]]*$//'`
+    # Backup job descriptor content (running VMs only)
+    local BACKUP_JOB_DESCRIPTOR_CONTENT="<domainbackup>\n    <disks>"
+    while IFS= read -r line; do
+        local DISK_NAME=`printf "${line}\n" | cut -d '|' -f 1`
+        local DISK_FILE_ABSOLUTE_PATH=`printf "${line}\n" | cut -d '|' -f 2`
+        local DISK_FILE_NAME=`basename ${DISK_FILE_ABSOLUTE_PATH}`
+        local TARGET_DISK_FILE_ABSOLUTE_PATH=${VM_BACKUP_DIR}/${DISK_FILE_NAME}
 
-    # Build backup task xml
-    local BACKUP_TASK_XML="<domainbackup>\n    <disks>"
-    for DISK_NAME in ${DISK_NAMES}
-    do
-        BACKUP_TASK_XML="${BACKUP_TASK_XML}\n        <disk name='${DISK_NAME}' type='file'>\n            <target file='${CURRENT_BACKUP_DIR}/${VM_NAME}-${DISK_NAME}.qcow2'/>\n                <driver type='qcow2'/>\n        </disk>\n"
-    done
-    BACKUP_TASK_XML="${BACKUP_TASK_XML}    </disks>\n</domainbackup>"
-
-    # persist backup task xml to a file
-    local BACKUP_TASK_FILE=${CURRENT_BACKUP_DIR}/${VM_NAME}-backup-task.xml
-    printf "${BACKUP_TASK_XML}\n" > ${BACKUP_TASK_FILE}
-
-    # launch
-    log "${VM_NAME} backup start"
-    virsh backup-begin ${VM_NAME} --backupxml ${BACKUP_TASK_FILE} ||
-            die "Failed to start backup for ${VM_NAME}"
-
-    # wait for backup completion
-    while :; do
-        if virsh domjobinfo ${VM_NAME} | grep -q "None"
+        if virsh domstate ${VM_NAME} | grep -q "running"
         then
-            break
+            BACKUP_JOB_DESCRIPTOR_CONTENT="${BACKUP_JOB_DESCRIPTOR_CONTENT}\n        <disk name='${DISK_NAME}' type='file'>\n            <target file='${TARGET_DISK_FILE_ABSOLUTE_PATH}'/>\n                <driver type='qcow2'/>\n        </disk>\n"
+        else
+            # copy offline VM file
+            # virt-sparsify --compress ${DISK_FILE_ABSOLUTE_PATH} ${TARGET_DISK_FILE_ABSOLUTE_PATH}-virt-sparsify
+            qemu-img convert -O qcow2 -c ${DISK_FILE_ABSOLUTE_PATH} ${TARGET_DISK_FILE_ABSOLUTE_PATH} || die "Copy of ${DISK_FILE_ABSOLUTE_PATH} ${TARGET_DISK_FILE_ABSOLUTE_PATH} failed"
         fi
-        sleep 10s
-    done
+    done < "${VM_DISKS_FILE}"
+    BACKUP_JOB_DESCRIPTOR_CONTENT="${BACKUP_JOB_DESCRIPTOR_CONTENT}    </disks>\n</domainbackup>"
+
+    # Running VM only: persist backup task xml to a file
+    if virsh domstate ${VM_NAME} | grep -q "running"
+    then
+        local BACKUP_TASK_FILE=${VM_BACKUP_DIR}/${VM_NAME}-backup-job-descriptor.xml
+        printf "${BACKUP_JOB_DESCRIPTOR_CONTENT}\n" > ${BACKUP_TASK_FILE}
+        # launch backup
+        log "${VM_NAME} backup start"
+        virsh backup-begin ${VM_NAME} --backupxml ${BACKUP_TASK_FILE} ||
+                die "Failed to start backup for ${VM_NAME}"
+
+        # wait completion
+        while :; do
+            if virsh domjobinfo ${VM_NAME} | grep -q "None"
+            then
+                break
+            fi
+            sleep 10s
+        done
+    fi
     log "${VM_NAME} backup finish"
 }
 
@@ -123,12 +151,7 @@ backup_vms() {
     log "Backup start"
     for VM_NAME_TO_BACK_UP in ${VM_NAMES_TO_BACK_UP}
     do
-        if virsh domstate ${VM_NAME_TO_BACK_UP} | grep -q "running"
-        then
-           backup_running_vm ${VM_NAME_TO_BACK_UP}
-        else
-            log "${VM_NAME_TO_BACK_UP} is not running, skipping"
-        fi
+        backup_vm ${VM_NAME_TO_BACK_UP}
     done
     log "Backup finish"
 }
